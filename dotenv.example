@@ -1,0 +1,18 @@
+# Database Configuration
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=stock_news
+
+# API Keys
+FINNHUB_API_KEY=
+ALPHAVANTAGE_API_KEY=
+GNEWS_API_KEY=
+
+# Redis for Celery
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Debug
+DEBUG=True
