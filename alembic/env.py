@@ -15,7 +15,9 @@ try:
     
     settings = get_settings()
     if config.config_file_name is not None:
-        config.set_main_option("sqlalchemy.url", settings.database_url)
+        # Use psycopg2 for sync migrations instead of asyncpg
+        sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+        config.set_main_option("sqlalchemy.url", sync_url)
         fileConfig(config.config_file_name)
     target_metadata = Base.metadata
 except (ImportError, Exception) as e:

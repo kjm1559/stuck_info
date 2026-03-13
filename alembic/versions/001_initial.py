@@ -5,16 +5,17 @@ Revises:
 Create Date: 2026-03-13
 
 """
-from typing import Sequence, Set
+from __future__ import annotations
+from typing import Sequence, Set, Optional
 import sqlalchemy as sa
 from alembic import op
 
 
 # Revision identifiers
 revision: str = '001_initial'
-down_revision: str | None = None
-branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+down_revision: Optional[str] = None
+branch_labels: Optional[Sequence[str]] = None
+depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
