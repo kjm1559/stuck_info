@@ -25,7 +25,7 @@ class FinnhubArticle(BaseModel):
 class FinnhubCollector:
     """Finnhub news collector with async HTTP client."""
 
-    BASE_URL = "https://finnhub.io/api/v1/stock/news"
+    BASE_URL = "https://finnhub.io/api/v1/company-news"
 
     def __init__(self, api_key: str, timeout: float = 10.0):
         self.api_key = api_key

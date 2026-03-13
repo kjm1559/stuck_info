@@ -1,11 +1,13 @@
 """Pydantic schemas for API responses."""
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ArticleBase(BaseModel):
     """Base article schema."""
+    model_config = ConfigDict(from_attributes=True)
+    
     title: str = Field(..., description="Article title")
     url: str = Field(..., description="Article URL")
     source: str = Field(..., description="News source (finnhub, alphavantage, gnews)")

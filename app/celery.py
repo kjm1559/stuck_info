@@ -13,11 +13,25 @@ app = Celery(
 )
 
 # Configuration
-app.config_from_object("app.celery_config")
+# Celery configuration
+app.conf.update(
+    timezone="UTC",
+    enable_utc=True,
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    task_routes={
+        "app.tasks.collect_news_for_all_companies": {"queue": "news_collection"},
+        "app.tasks.cleanup_old_articles": {"queue": "maintenance"},
+    },
+    worker_prefetch_multiplier=1,
+    task_acks_late=True,
+    task_reject_on_worker_lost=True,
+)
 
 # Task imports
 app.autodiscover_tasks(
-    packages=["app.tasks", "app.collectors"],
+    packages=["app.tasks"],
 )
 
 # Beat schedule
@@ -33,19 +47,3 @@ app.conf.beat_schedule = {
         "options": {"queue": "maintenance"},
     },
 }
-
-
-class celery_config:
-    """Celery configuration."""
-    timezone = "UTC"
-    enable_utc = True
-    task_serializer = "json"
-    result_serializer = "json"
-    accept_content = ["json"]
-    task_routes = {
-        "app.tasks.collect_news_for_all_companies": {"queue": "news_collection"},
-        "app.tasks.cleanup_old_articles": {"queue": "maintenance"},
-    }
-    worker_prefetch_multiplier = 1
-    task_acks_late = True
-    task_reject_on_worker_lost = True
