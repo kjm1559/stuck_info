@@ -1,65 +1,81 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
-import enum
+import hashlib
 
 Base = declarative_base()
 
 
-class UserStatus(str, enum.Enum):
-    active = "active"
-    inactive = "inactive"
-    banned = "banned"
+article_companies = Table(
+    "article_companies",
+    Base.metadata,
+    Column("article_id", Integer, ForeignKey("articles.id", ondelete="CASCADE"), primary_key=True),
+    Column("company_id", Integer, ForeignKey("companies.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(100), unique=True, index=True, nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    status = Column(Enum(UserStatus), default=UserStatus.active)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    posts = relationship("Post", back_populates="author")
-    comments = relationship("Comment", back_populates="author")
-
-
-class Post(Base):
-    __tablename__ = "posts"
+class Article(Base):
+    """Stock news article with deduplication."""
+    __tablename__ = "articles"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
+    title = Column(String(500), nullable=False, index=True)
+    url = Column(String(1000), unique=True, nullable=False, index=True)
+    source = Column(String(50), nullable=False, index=True)
+    description = Column(Text)
     content = Column(Text)
-    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    image = Column(String(500))
+    published_at = Column(DateTime, index=True)
+    content_hash = Column(String(64), unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    author = relationship("User", back_populates="posts")
-    comments = relationship("Comment", back_populates="post")
+    companies = relationship("Company", secondary=article_companies, back_populates="articles")
+
+    @staticmethod
+    def compute_hash(title: str, url: str) -> str:
+        """Compute SHA-256 hash for deduplication."""
+        combined = f"{title}|{url}"
+        return hashlib.sha256(combined.encode()).hexdigest()
+
+    @classmethod
+    def create_from_dict(cls, data: dict) -> "Article":
+        """Create Article instance from normalized data dict."""
+        return cls(
+            title=data["title"],
+            url=data["url"],
+            source=data["source"],
+            description=data.get("description"),
+            content=data.get("content"),
+            image=data.get("image"),
+            published_at=data.get("published_at"),
+            content_hash=cls.compute_hash(data["title"], data["url"]),
+        )
 
 
-class Comment(Base):
-    __tablename__ = "comments"
+class Company(Base):
+    """Stock ticker information."""
+    __tablename__ = "companies"
 
     id = Column(Integer, primary_key=True, index=True)
-    content = Column(Text, nullable=False)
-    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
+    ticker = Column(String(10), unique=True, nullable=False, index=True)
+    name = Column(String(200), nullable=False)
+    sector = Column(String(100))
+    is_active = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    articles = relationship("Article", secondary=article_companies, back_populates="companies")
+
+
+class ArticleSignal(Base):
+    """Sentiment/relevance signals for articles (ready for future use)."""
+    __tablename__ = "article_signals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    article_id = Column(Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
+    signal_type = Column(String(50), nullable=False)
+    score = Column(Integer)  # Store as percentage (e.g., 75 for 0.75)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    author = relationship("User", back_populates="comments")
-    post = relationship("Post", back_populates="comments")
-
-
-class PostView(Base):
-    __tablename__ = "post_views"
-
-    id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    viewed_at = Column(DateTime, default=datetime.utcnow)
-    user = relationship("User")
-    post = relationship("Post")
+    article = relationship("Article")
